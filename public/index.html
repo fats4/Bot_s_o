@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            height: auto;
+            width: 1000px;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-group textarea {
+            height: 100px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>BOT by Fats</h2>
+        <div class="form-group">
+            <label for="secretKey">Secret Key</label>
+            <input type="text" id="secretKey" required>
+        </div>
+        <div class="form-group">
+            <label for="destinations">Address tujuan (comma sebagai pemisah)</label>
+            <textarea id="destinations" required></textarea>
+        </div>
+        <button onclick="sendTransactions()">Kirim Transaksi</button>
+        <div class="message" id="message"></div>
+    </div>
+    <script>
+        async function sendTransactions() {
+            const secretKey = document.getElementById('secretKey').value;
+            const destinations = document.getElementById('destinations').value.split(',').map(addr => addr.trim());
+            const messageDiv = document.getElementById('message');
+
+            for (const destination of destinations) {
+                // Send transaction
+                try {
+                    const response = await fetch('/transaction', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            secretKeyBase58: secretKey,
+                            destinationPublicKeyString: destination,
+                        }),
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        messageDiv.innerHTML += `BERHASIL!!! <br><div style="color: green;">Transaksi ke : ${destination} <br>Signature : ${result.signature}</div>
+                        <br><hr width="100%" height="2px">`;
+                    } else {
+                        messageDiv.innerHTML += `<div style="color: red;">Error Mengirim ke ${destination}: ${result.error}</div>`;
+                    }
+                    
+                // Fetch and display remaining balance
+                try {
+                    const balanceResponse = await fetch('/transaction/balance', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            secretKeyBase58: secretKey,
+                        }),
+                    });
+
+                    const balanceResult = await balanceResponse.json();
+                    if (balanceResponse.ok) {
+                        messageDiv.innerHTML += `<div>Token Tersisa : ${balanceResult.balance} SOL</div>`;
+                    } else {
+                        messageDiv.innerHTML += `<div style="color: red;">Error Mendapatkan Token: ${balanceResult.error}</div>`;
+                    }
+                } catch (balanceError) {
+                    messageDiv.innerHTML += `<div style="color: red;">Error Mendapatkan Balance: ${balanceError.message}</div>`;
+                }
+
+                // Pause for 30 seconds before next transaction
+                await new Promise(resolve => setTimeout(resolve, 30000));
+                } catch (error) {
+                    messageDiv.innerHTML += `<div style="color: red;">Error Mengirim ke ${destination}: ${error.message}</div>`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
