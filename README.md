@@ -1,2 +1,3 @@
-# npm install
-# node app.js
+# Lakukan Pada Terminal
+- npm install
+- node app.js
